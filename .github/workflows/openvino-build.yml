@@ -2,9 +2,9 @@ name: Build OpenVINO Addons
 
 on:
   push:
-    branches: [ main, openvino-integration ]
+    branches: [ master, openvino-integration ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   release:
     types: [created]
 
