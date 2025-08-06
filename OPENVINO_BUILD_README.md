@@ -14,7 +14,8 @@ The repository includes a GitHub Actions workflow that automatically builds Open
 
 - **Windows**: `addon-windows-openvino.node` (x64)
 - **Linux**: `addon-linux-openvino.node` (x64) 
-- **macOS**: `addon-macos-openvino.node` (ARM64)
+- **macOS ARM**: `addon-macos-arm-openvino.node` (ARM64)
+- **macOS x86**: `addon-macos-x86-openvino.node` (ARM64)
 
 ### Triggering Builds
 
@@ -28,8 +29,8 @@ Download the latest addons from the [Releases](../../releases) page:
 
 ```bash
 # Download specific addon
-curl -L -o addon-macos-openvino.node \
-  "https://github.com/YOUR_USERNAME/whisper.cpp/releases/download/latest/addon-macos-openvino.node"
+curl -L -o addon-windows-openvino.node \
+  "https://github.com/MaurUppi/whisper.cpp-openvino/releases/download/latest/addon-windows-openvino.node"
 ```
 
 ## 🛠️ Local Development
@@ -154,7 +155,8 @@ The built addons are designed to integrate seamlessly with SmartSub's addon load
 // SmartSub will automatically detect and load:
 const ADDON_FALLBACK_CHAINS = {
   'openvino': [
-    'addon-macos-openvino.node',     // ← macOS OpenVINO
+    'addon-macos-arm-openvino.node',     // ← macOS ARM64 OpenVINO
+    'addon-macos-x86-openvino.node',     // ← macOS x86 OpenVINO
     'addon-windows-openvino.node',   // ← Windows OpenVINO  
     'addon-linux-openvino.node',     // ← Linux OpenVINO
     'addon.coreml.node',             // ← Fallback to CoreML
@@ -168,7 +170,7 @@ const ADDON_FALLBACK_CHAINS = {
 ```bash
 # Copy built addon to SmartSub
 cp examples/addon.node/build/Release/addon.node \
-  /path/to/SmartSub/extraResources/addons/addon-macos-openvino.node
+  /path/to/SmartSub/extraResources/addons/addon-macos-x86-openvino.node
 ```
 
 ## 🔧 Configuration
@@ -261,6 +263,6 @@ Check GitHub Actions logs for detailed build information:
 
 ---
 
-**Build Status**: ![OpenVINO Build](https://github.com/YOUR_USERNAME/whisper.cpp/actions/workflows/openvino-build.yml/badge.svg)
+**Build Status**: ![OpenVINO Build](https://github.com/MaurUppi/whisper.cpp-openvino/actions/workflows/openvino-build.yml/badge.svg)
 
 **Compatibility**: OpenVINO 2024.6/2025.2 | Electron 30.1.0+ | Node.js 22+
