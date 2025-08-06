@@ -43,13 +43,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js 21
+      - name: Setup Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: '21'
+          node-version: '22'
           
       - name: Install cmake-js
         run: npm install -g cmake-js
+          
+      - name: Install system dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install cmake -y
           
       - name: Download and Install OpenVINO (Windows)
         if: runner.os == 'Windows'
@@ -58,12 +63,23 @@ jobs:
           7z x openvino.zip
           echo "OPENVINO_INSTALL_DIR=${{ github.workspace }}/${{ matrix.openvino_dir }}" >> $env:GITHUB_ENV
           
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libtbb-dev libtbb2 cmake build-essential
+          
       - name: Download and Install OpenVINO (Linux)
         if: runner.os == 'Linux'
         run: |
           curl -L -o openvino.tgz "${{ matrix.openvino_url }}"
           tar -xzf openvino.tgz
           echo "OPENVINO_INSTALL_DIR=${{ github.workspace }}/${{ matrix.openvino_dir }}" >> $GITHUB_ENV
+          
+      - name: Install system dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install tbb cmake
           
       - name: Download and Install OpenVINO (macOS)
         if: runner.os == 'macOS'
@@ -84,11 +100,31 @@ jobs:
         run: |
           cd "${{ env.OPENVINO_INSTALL_DIR }}"
           source "${{ matrix.setup_script }}"
-          echo "OpenVINO environment initialized"
+          # Add OpenVINO libraries to environment
+          echo "OPENVINO_LIB_PATHS=${{ env.OPENVINO_INSTALL_DIR }}/runtime/lib/intel64:${{ env.OPENVINO_INSTALL_DIR }}/runtime/3rdparty/tbb/lib" >> $GITHUB_ENV
+          echo "LD_LIBRARY_PATH=${{ env.OPENVINO_INSTALL_DIR }}/runtime/lib/intel64:${{ env.OPENVINO_INSTALL_DIR }}/runtime/3rdparty/tbb/lib:$LD_LIBRARY_PATH" >> $GITHUB_ENV
+          echo "OpenVINO_DIR=${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" >> $GITHUB_ENV
+          echo "OpenVINO environment initialized with library paths"
+          
+      - name: Validate Environment
+        if: runner.os != 'Windows'
+        run: |
+          chmod +x scripts/validate-workflow-environment.sh
+          ./scripts/validate-workflow-environment.sh
           
       - name: Build Whisper.cpp with OpenVINO
         run: |
-          cmake -B build -DWHISPER_OPENVINO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
+          # Configure with proper OpenVINO and TBB paths
+          cmake -B build \
+            -DWHISPER_OPENVINO=ON \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DBUILD_SHARED_LIBS=OFF \
+            -DWHISPER_STATIC=ON \
+            -DOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
+            -DCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
+          
+          # Build with proper library paths
+          export LD_LIBRARY_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/lib/intel64:${{ env.OPENVINO_INSTALL_DIR }}/runtime/3rdparty/tbb/lib:$LD_LIBRARY_PATH"
           cmake --build build -j --config Release
           
       - name: Install Node.js Dependencies
@@ -101,7 +137,15 @@ jobs:
         run: |
           cd examples/addon.node
           call "${{ env.OPENVINO_INSTALL_DIR }}/${{ matrix.setup_script }}"
-          npx cmake-js rebuild --runtime=electron --runtime-version=30.1.0 --arch=${{ matrix.arch }} --CDWHISPER_OPENVINO=ON --CDBUILD_SHARED_LIBS=OFF --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" --CDCMAKE_MODULE_PATH="${{ github.workspace }}/cmake"
+          npx cmake-js rebuild ^
+            --runtime=electron ^
+            --runtime-version=30.1.0 ^
+            --arch=${{ matrix.arch }} ^
+            --CDWHISPER_OPENVINO=ON ^
+            --CDBUILD_SHARED_LIBS=OFF ^
+            --CDWHISPER_STATIC=ON ^
+            --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" ^
+            --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
         shell: cmd
           
       - name: Build Node.js Addon (Unix)
@@ -109,7 +153,16 @@ jobs:
         run: |
           cd examples/addon.node
           source "${{ env.OPENVINO_INSTALL_DIR }}/${{ matrix.setup_script }}"
-          npx cmake-js rebuild --runtime=electron --runtime-version=30.1.0 --arch=${{ matrix.arch }} --CDWHISPER_OPENVINO=ON --CDBUILD_SHARED_LIBS=OFF --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" --CDCMAKE_MODULE_PATH="${{ github.workspace }}/cmake"
+          export LD_LIBRARY_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/lib/intel64:${{ env.OPENVINO_INSTALL_DIR }}/runtime/3rdparty/tbb/lib:$LD_LIBRARY_PATH"
+          npx cmake-js rebuild \
+            --runtime=electron \
+            --runtime-version=30.1.0 \
+            --arch=${{ matrix.arch }} \
+            --CDWHISPER_OPENVINO=ON \
+            --CDBUILD_SHARED_LIBS=OFF \
+            --CDWHISPER_STATIC=ON \
+            --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
+            --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
           
       - name: Verify Addon Build
         run: |
@@ -119,7 +172,7 @@ jobs:
       - name: Copy and Rename Addon
         run: |
           cd examples/addon.node
-          cp build/Release/addon.node.node ${{ matrix.addon_name }}
+          cp build/Release/addon.node ${{ matrix.addon_name }}
           
       - name: Upload Addon Artifact
         uses: actions/upload-artifact@v4
