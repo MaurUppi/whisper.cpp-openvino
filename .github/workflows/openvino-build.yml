@@ -177,12 +177,28 @@ jobs:
             --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
             --CDCMAKE_MODULE_PATH="${{ github.workspace }}/cmake"
           
-      - name: Verify Addon Build
+      - name: Verify Addon Build (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd examples/addon.node
+          dir build\Release\
+        shell: cmd
+          
+      - name: Verify Addon Build (Unix)
+        if: runner.os != 'Windows'
         run: |
           cd examples/addon.node
           ls -la build/Release/
           
-      - name: Copy and Rename Addon
+      - name: Copy and Rename Addon (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cd examples/addon.node
+          copy build\Release\addon.node ${{ matrix.addon_name }}
+        shell: cmd
+          
+      - name: Copy and Rename Addon (Unix)
+        if: runner.os != 'Windows'
         run: |
           cd examples/addon.node
           cp build/Release/addon.node ${{ matrix.addon_name }}
@@ -232,4 +248,4 @@ jobs:
           echo "Compatible with:" >> $GITHUB_STEP_SUMMARY
           echo "- OpenVINO 2024.6.0" >> $GITHUB_STEP_SUMMARY
           echo "- Electron 30.1.0" >> $GITHUB_STEP_SUMMARY
-          echo "- Node.js 21.x" >> $GITHUB_STEP_SUMMARY
+          echo "- Node.js 22.x" >> $GITHUB_STEP_SUMMARY
