@@ -82,21 +82,47 @@ endif()
 # Core libraries in correct linking order
 if(WIN32)
     # Windows uses .lib files and may have Release/Debug subdirectories
-    set(WHISPER_LIBS
-        "${WHISPER_BUILD_DIR}/examples/Release/common.lib"
-        "${WHISPER_BUILD_DIR}/src/Release/whisper.lib"
-        "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml.lib"
-    )
+    # Try to find the libraries using more flexible patterns
+    find_library(COMMON_LIB 
+        NAMES common libcommon
+        PATHS "${WHISPER_BUILD_DIR}/examples/Release" "${WHISPER_BUILD_DIR}/examples/Debug" "${WHISPER_BUILD_DIR}/examples"
+        NO_DEFAULT_PATH)
+    find_library(WHISPER_LIB 
+        NAMES whisper libwhisper
+        PATHS "${WHISPER_BUILD_DIR}/src/Release" "${WHISPER_BUILD_DIR}/src/Debug" "${WHISPER_BUILD_DIR}/src"
+        NO_DEFAULT_PATH)  
+    find_library(GGML_LIB 
+        NAMES ggml libggml
+        PATHS "${WHISPER_BUILD_DIR}/ggml/src/Release" "${WHISPER_BUILD_DIR}/ggml/src/Debug" "${WHISPER_BUILD_DIR}/ggml/src"
+        NO_DEFAULT_PATH)
+    
+    set(WHISPER_LIBS ${COMMON_LIB} ${WHISPER_LIB} ${GGML_LIB})
     
     # Add ggml CPU backend libraries (Windows)
-    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-cpu.lib")
-        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-cpu.lib")
+    find_library(GGML_CPU_LIB 
+        NAMES ggml-cpu libggml-cpu
+        PATHS "${WHISPER_BUILD_DIR}/ggml/src/Release" "${WHISPER_BUILD_DIR}/ggml/src/Debug" "${WHISPER_BUILD_DIR}/ggml/src"
+        NO_DEFAULT_PATH)
+    if(GGML_CPU_LIB)
+        list(APPEND WHISPER_LIBS ${GGML_CPU_LIB})
     endif()
     
     # Add ggml base library (Windows)
-    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-base.lib")
-        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-base.lib")
+    find_library(GGML_BASE_LIB 
+        NAMES ggml-base libggml-base
+        PATHS "${WHISPER_BUILD_DIR}/ggml/src/Release" "${WHISPER_BUILD_DIR}/ggml/src/Debug" "${WHISPER_BUILD_DIR}/ggml/src"
+        NO_DEFAULT_PATH)
+    if(GGML_BASE_LIB)
+        list(APPEND WHISPER_LIBS ${GGML_BASE_LIB})
     endif()
+    
+    # Debug: Show what libraries were found
+    message(STATUS "Windows library search results:")
+    message(STATUS "  COMMON_LIB: ${COMMON_LIB}")
+    message(STATUS "  WHISPER_LIB: ${WHISPER_LIB}")
+    message(STATUS "  GGML_LIB: ${GGML_LIB}")
+    message(STATUS "  GGML_CPU_LIB: ${GGML_CPU_LIB}")
+    message(STATUS "  GGML_BASE_LIB: ${GGML_BASE_LIB}")
 else()
     # Unix uses .a files
     set(WHISPER_LIBS

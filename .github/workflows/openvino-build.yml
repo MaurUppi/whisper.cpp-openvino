@@ -147,6 +147,7 @@ jobs:
         run: |
           cd examples/addon.node
           call "${{ env.OPENVINO_INSTALL_DIR }}/${{ matrix.setup_script }}"
+          echo "Building Node.js addon with cmake-js..."
           npx cmake-js rebuild ^
             --runtime=electron ^
             --runtime-version=30.1.0 ^
@@ -157,6 +158,11 @@ jobs:
             --CDCMAKE_POSITION_INDEPENDENT_CODE=ON ^
             --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" ^
             --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
+          if %errorlevel% neq 0 (
+            echo "cmake-js build failed with error level %errorlevel%"
+            exit 1
+          )
+          echo "cmake-js build completed successfully"
         shell: cmd
           
       - name: Build Node.js Addon (Unix)
@@ -194,7 +200,15 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd examples/addon.node
-          copy build\Release\addon.node ${{ matrix.addon_name }}
+          if exist build\Release\addon.node (
+            copy build\Release\addon.node ${{ matrix.addon_name }}
+            echo "Successfully copied addon.node"
+          ) else (
+            echo "ERROR: addon.node not found in build\Release\"
+            echo "Available files:"
+            dir build\Release\
+            exit 1
+          )
         shell: cmd
           
       - name: Copy and Rename Addon (Unix)
@@ -243,7 +257,8 @@ jobs:
           echo "Built addons for cross-platform OpenVINO support:" >> $GITHUB_STEP_SUMMARY
           echo "- Windows: addon-windows-openvino.node" >> $GITHUB_STEP_SUMMARY
           echo "- Linux: addon-linux-openvino.node" >> $GITHUB_STEP_SUMMARY  
-          echo "- macOS: addon-macos-openvino.node" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS ARM: addon-macos-arm-openvino.node" >> $GITHUB_STEP_SUMMARY
+          echo "- macOS x86: addon-macos-x86-openvino.node" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "Compatible with:" >> $GITHUB_STEP_SUMMARY
           echo "- OpenVINO 2024.6.0" >> $GITHUB_STEP_SUMMARY
