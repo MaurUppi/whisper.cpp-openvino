@@ -187,7 +187,7 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd examples/addon.node
-          dir build\Release\
+          dir build\bin\Release\
         shell: cmd
           
       - name: Verify Addon Build (Unix)
@@ -200,13 +200,13 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           cd examples/addon.node
-          if exist build\Release\addon.node (
-            copy build\Release\addon.node ${{ matrix.addon_name }}
+          if exist build\bin\Release\addon.node (
+            copy build\bin\Release\addon.node ${{ matrix.addon_name }}
             echo "Successfully copied addon.node"
           ) else (
-            echo "ERROR: addon.node not found in build\Release\"
+            echo "ERROR: addon.node not found in build\bin\Release\"
             echo "Available files:"
-            dir build\Release\
+            dir build\bin\Release\
             exit 1
           )
         shell: cmd
