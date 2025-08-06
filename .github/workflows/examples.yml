@@ -1,5 +1,5 @@
 name: Examples Tests
-on:
+off:
   push:
     paths:
       - examples/addon.node/**

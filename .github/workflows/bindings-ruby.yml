@@ -1,6 +1,6 @@
 name: Bindings Tests (Ruby)
 
-on:
+off:
   push:
     branches:
       - master

@@ -1,6 +1,6 @@
 name: Publish Docker image
 
-on:
+off:
   pull_request:
   push:
     branches:

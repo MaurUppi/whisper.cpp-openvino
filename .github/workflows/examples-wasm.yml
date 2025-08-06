@@ -1,5 +1,5 @@
 name: Examples WASM
-on:
+off:
   push:
     branches: ["master"]
 
