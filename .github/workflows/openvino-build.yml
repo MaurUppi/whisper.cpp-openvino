@@ -121,6 +121,7 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DBUILD_SHARED_LIBS=OFF \
             -DWHISPER_STATIC=ON \
+            -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
             -DCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
           
