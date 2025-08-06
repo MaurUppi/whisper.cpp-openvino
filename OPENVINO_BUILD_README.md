@@ -36,8 +36,8 @@ curl -L -o addon-macos-openvino.node \
 
 ### Prerequisites
 
-- **OpenVINO 2024.6.0+** (Intel distribution)
-- **Node.js 21+** (OpenVINO requirement)
+- **OpenVINO 2024.6** (default/recommended) or **2025.2** (latest)
+- **Node.js 22+** (current requirement)
 - **CMake 3.16+**
 - **Platform-specific build tools**:
   - Windows: Visual Studio 2022 + MSVC
@@ -128,7 +128,7 @@ npx cmake-js rebuild `
 ```
 
 The script checks:
-- ✅ System requirements (CMake, Node.js 21+, OpenVINO)
+- ✅ System requirements (CMake, Node.js 22+, OpenVINO)
 - ✅ Build artifacts (library and addon)
 - ✅ Addon loading functionality
 - ✅ Platform-specific requirements
@@ -198,8 +198,8 @@ cp examples/addon.node/build/Release/addon.node \
 
 2. **Node.js version too old**
    ```bash
-   # Install Node.js 21+
-   brew install node@21  # macOS
+   # Install Node.js 22+
+   brew install node@22  # macOS
    ```
 
 3. **Addon loading fails**
@@ -263,4 +263,4 @@ Check GitHub Actions logs for detailed build information:
 
 **Build Status**: ![OpenVINO Build](https://github.com/YOUR_USERNAME/whisper.cpp/actions/workflows/openvino-build.yml/badge.svg)
 
-**Compatibility**: OpenVINO 2024.6.0 | Electron 30.1.0+ | Node.js 21+
+**Compatibility**: OpenVINO 2024.6/2025.2 | Electron 30.1.0+ | Node.js 22+
