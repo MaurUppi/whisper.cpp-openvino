@@ -36,39 +36,84 @@ target_include_directories(${TARGET} PRIVATE ${NODE_ADDON_API_DIR})
 
 # Determine build directory (check both build and build-openvino)
 set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build")
-if(NOT EXISTS "${WHISPER_BUILD_DIR}/src/libwhisper.a")
-    set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino")
+
+# Check for different library file patterns based on platform
+if(WIN32)
+    # Windows uses .lib files and different directory structure
+    if(NOT EXISTS "${WHISPER_BUILD_DIR}/src/Release/whisper.lib" AND NOT EXISTS "${WHISPER_BUILD_DIR}/src/Debug/whisper.lib")
+        set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino")
+    endif()
+else()
+    # Unix uses .a files
+    if(NOT EXISTS "${WHISPER_BUILD_DIR}/src/libwhisper.a")
+        set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino")
+    endif()
 endif()
 
 message(STATUS "Using build directory: ${WHISPER_BUILD_DIR}")
 
 # Debug: List available library files
-file(GLOB_RECURSE ALL_LIBS "${WHISPER_BUILD_DIR}/*.a")
+if(WIN32)
+    file(GLOB_RECURSE ALL_LIBS "${WHISPER_BUILD_DIR}/*.lib")
+else()
+    file(GLOB_RECURSE ALL_LIBS "${WHISPER_BUILD_DIR}/*.a")
+endif()
 message(STATUS "Found library files:")
 foreach(lib ${ALL_LIBS})
     message(STATUS "  ${lib}")
 endforeach()
 
 # Link against the built libraries from main build
-link_directories("${WHISPER_BUILD_DIR}/src")
-link_directories("${WHISPER_BUILD_DIR}/ggml/src") 
-link_directories("${WHISPER_BUILD_DIR}/examples")
-
-# Core libraries in correct linking order
-set(WHISPER_LIBS
-    "${WHISPER_BUILD_DIR}/examples/libcommon.a"
-    "${WHISPER_BUILD_DIR}/src/libwhisper.a"
-    "${WHISPER_BUILD_DIR}/ggml/src/libggml.a"
-)
-
-# Add ggml CPU backend libraries
-if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
-    list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
+if(WIN32)
+    # Windows library directories
+    link_directories("${WHISPER_BUILD_DIR}/src/Release")
+    link_directories("${WHISPER_BUILD_DIR}/src/Debug")
+    link_directories("${WHISPER_BUILD_DIR}/ggml/src/Release") 
+    link_directories("${WHISPER_BUILD_DIR}/ggml/src/Debug")
+    link_directories("${WHISPER_BUILD_DIR}/examples/Release")
+    link_directories("${WHISPER_BUILD_DIR}/examples/Debug")
+else()
+    # Unix library directories
+    link_directories("${WHISPER_BUILD_DIR}/src")
+    link_directories("${WHISPER_BUILD_DIR}/ggml/src") 
+    link_directories("${WHISPER_BUILD_DIR}/examples")
 endif()
 
-# Add ggml base library
-if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
-    list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
+# Core libraries in correct linking order
+if(WIN32)
+    # Windows uses .lib files and may have Release/Debug subdirectories
+    set(WHISPER_LIBS
+        "${WHISPER_BUILD_DIR}/examples/Release/common.lib"
+        "${WHISPER_BUILD_DIR}/src/Release/whisper.lib"
+        "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml.lib"
+    )
+    
+    # Add ggml CPU backend libraries (Windows)
+    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-cpu.lib")
+        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-cpu.lib")
+    endif()
+    
+    # Add ggml base library (Windows)
+    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-base.lib")
+        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/Release/ggml-base.lib")
+    endif()
+else()
+    # Unix uses .a files
+    set(WHISPER_LIBS
+        "${WHISPER_BUILD_DIR}/examples/libcommon.a"
+        "${WHISPER_BUILD_DIR}/src/libwhisper.a"
+        "${WHISPER_BUILD_DIR}/ggml/src/libggml.a"
+    )
+    
+    # Add ggml CPU backend libraries (Unix)
+    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
+        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
+    endif()
+    
+    # Add ggml base library (Unix)  
+    if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
+        list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
+    endif()
 endif()
 
 # Check if this is an OpenVINO build
