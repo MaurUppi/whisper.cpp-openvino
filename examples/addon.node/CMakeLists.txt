@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.10)
 project(addon.node)
 
-set(TARGET addon.node)
+set(TARGET addon)
 
 # Set include paths to main whisper.cpp cmake directory
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake")
@@ -34,16 +34,58 @@ string(REPLACE "\"" "" NODE_ADDON_API_DIR ${NODE_ADDON_API_DIR})
 target_include_directories(${TARGET} PRIVATE ${NODE_ADDON_API_DIR})
 #==================================================================
 
+# Determine build directory (check both build and build-openvino)
+set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build")
+if(NOT EXISTS "${WHISPER_BUILD_DIR}/src/libwhisper.a")
+    set(WHISPER_BUILD_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino")
+endif()
+
+message(STATUS "Using build directory: ${WHISPER_BUILD_DIR}")
+
+# Debug: List available library files
+file(GLOB_RECURSE ALL_LIBS "${WHISPER_BUILD_DIR}/*.a")
+message(STATUS "Found library files:")
+foreach(lib ${ALL_LIBS})
+    message(STATUS "  ${lib}")
+endforeach()
+
 # Link against the built libraries from main build
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/src")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/ggml/src")
-link_directories("${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/examples")
+link_directories("${WHISPER_BUILD_DIR}/src")
+link_directories("${WHISPER_BUILD_DIR}/ggml/src") 
+link_directories("${WHISPER_BUILD_DIR}/examples")
+
+# Core libraries in correct linking order
+set(WHISPER_LIBS
+    "${WHISPER_BUILD_DIR}/examples/libcommon.a"
+    "${WHISPER_BUILD_DIR}/src/libwhisper.a"
+    "${WHISPER_BUILD_DIR}/ggml/src/libggml.a"
+)
+
+# Add ggml CPU backend libraries
+if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
+    list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-cpu.a")
+endif()
+
+# Add ggml base library
+if(EXISTS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
+    list(APPEND WHISPER_LIBS "${WHISPER_BUILD_DIR}/ggml/src/libggml-base.a")
+endif()
+
+# Check if this is an OpenVINO build
+if(WHISPER_OPENVINO)
+    message(STATUS "Building addon with OpenVINO support")
+endif()
 
 target_link_libraries(${TARGET} ${CMAKE_JS_LIB} 
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/src/libwhisper.a"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/ggml/src/libggml.a"
-    "${CMAKE_CURRENT_SOURCE_DIR}/../../build-openvino/examples/libcommon.a"
+    ${WHISPER_LIBS}
     ${CMAKE_THREAD_LIBS_INIT})
+
+# Link OpenVINO runtime if building with OpenVINO support
+if(WHISPER_OPENVINO)
+    find_package(OpenVINO REQUIRED)
+    target_link_libraries(${TARGET} openvino::runtime)
+    message(STATUS "Linking addon with OpenVINO runtime")
+endif()
 
 if(MSVC AND CMAKE_JS_NODELIB_DEF AND CMAKE_JS_NODELIB_TARGET)
     # Generate node.lib

@@ -163,7 +163,8 @@ jobs:
             --CDBUILD_SHARED_LIBS=OFF \
             --CDWHISPER_STATIC=ON \
             --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
-            --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
+            --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
+            --CDCMAKE_MODULE_PATH="${{ github.workspace }}/cmake"
           
       - name: Verify Addon Build
         run: |
