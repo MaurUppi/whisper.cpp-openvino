@@ -63,3 +63,5 @@ cmake-build-debug/
 local.properties
 .log
 .exe
+
+debug/

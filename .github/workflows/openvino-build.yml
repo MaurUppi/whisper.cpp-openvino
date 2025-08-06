@@ -25,11 +25,17 @@ jobs:
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/linux/l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64.tgz"
             openvino_dir: "l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64"
             setup_script: "setupvars.sh"
-          - os: macos-13
+          - os: macos-15
             arch: arm64
-            addon_name: addon-macos-openvino.node
+            addon_name: addon-macos-arm-openvino.node
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/macos/m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_arm64.tgz"
             openvino_dir: "m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_arm64"
+            setup_script: "setupvars.sh"
+          - os: macos-13
+            arch: x64
+            addon_name: addon-macos-x86-openvino.node
+            openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/macos/m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_x86_64.tgz"
+            openvino_dir: "m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_x86_64"
             setup_script: "setupvars.sh"
 
     runs-on: ${{ matrix.os }}
