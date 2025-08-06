@@ -13,63 +13,29 @@ jobs:
     strategy:
       matrix:
         include:
-          # OpenVINO 2024.6 builds
           - os: windows-2022
             arch: x64
-            openvino_version: "2024.6"
             addon_name: addon-windows-openvino.node
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/windows/w_openvino_toolkit_windows_2024.6.0.17404.4c0f47d2335_x86_64.zip"
             openvino_dir: "w_openvino_toolkit_windows_2024.6.0.17404.4c0f47d2335_x86_64"
             setup_script: "setupvars.bat"
           - os: ubuntu-22.04  
             arch: x64
-            openvino_version: "2024.6"
             addon_name: addon-linux-openvino.node
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/linux/l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64.tgz"
             openvino_dir: "l_openvino_toolkit_ubuntu22_2024.6.0.17404.4c0f47d2335_x86_64"
             setup_script: "setupvars.sh"
           - os: macos-15
             arch: arm64
-            openvino_version: "2024.6"
             addon_name: addon-macos-arm-openvino.node
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/macos/m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_arm64.tgz"
             openvino_dir: "m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_arm64"
             setup_script: "setupvars.sh"
           - os: macos-13
             arch: x64
-            openvino_version: "2024.6"
             addon_name: addon-macos-x86-openvino.node
             openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2024.6/macos/m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_x86_64.tgz"
             openvino_dir: "m_openvino_toolkit_macos_12_6_2024.6.0.17404.4c0f47d2335_x86_64"
-            setup_script: "setupvars.sh"
-          # OpenVINO 2025.2 builds  
-          - os: windows-2022
-            arch: x64
-            openvino_version: "2025.2"
-            addon_name: addon-windows-openvino.node
-            openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2025.2/windows/openvino_toolkit_windows_2025.2.0.19140.c01cd93e24d_x86_64.zip"
-            openvino_dir: "openvino_toolkit_windows_2025.2.0.19140.c01cd93e24d_x86_64"
-            setup_script: "setupvars.bat"
-          - os: ubuntu-22.04
-            arch: x64
-            openvino_version: "2025.2"
-            addon_name: addon-linux-openvino.node
-            openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2025.2/linux/openvino_toolkit_ubuntu22_2025.2.0.19140.c01cd93e24d_x86_64.tgz"
-            openvino_dir: "openvino_toolkit_ubuntu22_2025.2.0.19140.c01cd93e24d_x86_64"
-            setup_script: "setupvars.sh"
-          - os: macos-15
-            arch: arm64
-            openvino_version: "2025.2"
-            addon_name: addon-macos-arm-openvino.node
-            openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2025.2/macos/openvino_toolkit_macos_12_6_2025.2.0.19140.c01cd93e24d_arm64.tgz"
-            openvino_dir: "openvino_toolkit_macos_12_6_2025.2.0.19140.c01cd93e24d_arm64"
-            setup_script: "setupvars.sh"
-          - os: macos-13
-            arch: x64
-            openvino_version: "2025.2"
-            addon_name: addon-macos-x86-openvino.node
-            openvino_url: "https://storage.openvinotoolkit.org/repositories/openvino/packages/2025.2/macos/openvino_toolkit_macos_12_6_2025.2.0.19140.c01cd93e24d_x86_64.tgz"
-            openvino_dir: "openvino_toolkit_macos_12_6_2025.2.0.19140.c01cd93e24d_x86_64"
             setup_script: "setupvars.sh"
 
     runs-on: ${{ matrix.os }}
@@ -254,45 +220,35 @@ jobs:
       - name: Upload Addon Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.addon_name }}-${{ matrix.openvino_version }}
+          name: ${{ matrix.addon_name }}
           path: examples/addon.node/${{ matrix.addon_name }}
           retention-days: 30
           
 
-  create-releases:
+  create-release:
     needs: build-openvino-addons
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/master' || github.ref == 'refs/heads/openvino-integration'
-    strategy:
-      matrix:
-        openvino_version: ["2024.6", "2025.2"]
     
     steps:
       - uses: actions/checkout@v4
       
-      - name: Download artifacts for OpenVINO ${{ matrix.openvino_version }}
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: "*-${{ matrix.openvino_version }}"
           path: artifacts
-          merge-multiple: true
           
       - name: Extract version information
         id: version_info
         run: |
-          # Extract OpenVINO version information for current matrix version
-          OPENVINO_DISPLAY_VERSION="${{ matrix.openvino_version }}"
+          # Extract OpenVINO version dynamically from workflow matrix
+          OPENVINO_URL=$(grep -A 10 "os: windows-2022" .github/workflows/openvino-build.yml | grep "openvino_url:" | sed 's/.*openvino_url: "//' | sed 's/".*//')
           
-          # Find the first URL for this OpenVINO version to get full version info
-          OPENVINO_URL=$(grep -A 2 "openvino_version: \"${{ matrix.openvino_version }}\"" .github/workflows/openvino-build.yml | grep "openvino_url:" | head -1 | sed 's/.*openvino_url: "//' | sed 's/".*//')
+          # Extract full version (e.g., 2024.6.0.17404.4c0f47d2335)
+          OPENVINO_VERSION=$(echo "$OPENVINO_URL" | grep -oP '\d{4}\.\d+\.\d+\.\d+\.[a-f0-9]+' | head -1)
           
-          if [ -n "$OPENVINO_URL" ]; then
-            # Extract full version (e.g., 2024.6.0.17404.4c0f47d2335)
-            OPENVINO_FULL_VERSION=$(echo "$OPENVINO_URL" | grep -oP '\d{4}\.\d+\.\d+\.\d+\.[a-f0-9]+' | head -1)
-          else
-            # If URL is empty (like 2025.2), use display version
-            OPENVINO_FULL_VERSION="$OPENVINO_DISPLAY_VERSION"
-          fi
+          # Extract major.minor version for display (e.g., 2024.6)
+          OPENVINO_DISPLAY_VERSION=$(echo "$OPENVINO_VERSION" | grep -oP '^\d{4}\.\d+')
           
           # Extract Electron and Node versions dynamically from workflow  
           ELECTRON_VERSION=$(grep -A 20 "Build Node.js Addon" .github/workflows/openvino-build.yml | grep "runtime-version=" | sed 's/.*runtime-version=//' | sed 's/ .*//' | head -1)
@@ -302,30 +258,30 @@ jobs:
           # Create timestamp
           TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
           
-          echo "openvino_version=$OPENVINO_FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "openvino_version=$OPENVINO_VERSION" >> $GITHUB_OUTPUT
           echo "openvino_display_version=$OPENVINO_DISPLAY_VERSION" >> $GITHUB_OUTPUT
           echo "electron_version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "node_version=$NODE_VERSION" >> $GITHUB_OUTPUT
           echo "timestamp=$TIMESTAMP" >> $GITHUB_OUTPUT
-          echo "tag_name=openvino-${{ matrix.openvino_version }}-v$(date '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
+          echo "tag_name=v$(date '+%Y%m%d-%H%M%S')" >> $GITHUB_OUTPUT
           
       - name: List downloaded artifacts
         run: |
-          echo "Downloaded artifacts for OpenVINO ${{ matrix.openvino_version }}:"
+          echo "Downloaded artifacts:"
           find artifacts -type f -name "*.node" -exec ls -la {} \;
           
-      - name: Create Release for OpenVINO ${{ matrix.openvino_version }}
+      - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.version_info.outputs.tag_name }}
-          release_name: "Whisper OpenVINO ${{ matrix.openvino_version }} addon - ${{ steps.version_info.outputs.timestamp }}"
+          release_name: "Whisper OpenVINO addon - ${{ steps.version_info.outputs.timestamp }}"
           body: |
-            # Whisper.cpp OpenVINO ${{ matrix.openvino_version }} Node.js Addons
+            # Whisper.cpp OpenVINO Node.js Addons
             
-            Cross-platform Node.js addons with **OpenVINO ${{ matrix.openvino_version }}** GPU acceleration support for whisper.cpp.
+            Cross-platform Node.js addons with OpenVINO GPU acceleration support for whisper.cpp.
             
             ## 🚀 What's Included
             
@@ -350,22 +306,18 @@ jobs:
             
             ```javascript
             // Load the appropriate addon for your platform
-            const whisper = require('./addon-windows-openvino.node');  // Windows
-            const whisper = require('./addon-linux-openvino.node');    // Linux  
-            const whisper = require('./addon-macos-arm-openvino.node'); // macOS ARM
-            const whisper = require('./addon-macos-x86-openvino.node'); // macOS x64
+            const whisper = require('./addon-[platform]-openvino.node');
             ```
             
             ## 🏗️ Build Information
             
             - **Built**: ${{ steps.version_info.outputs.timestamp }}
-            - **OpenVINO Version**: ${{ matrix.openvino_version }}
             - **Commit**: ${{ github.sha }}
             - **Branch**: ${{ github.ref_name }}
             
             ---
             
-            *These addons enable GPU-accelerated speech recognition using Intel OpenVINO ${{ matrix.openvino_version }} toolkit.*
+            *These addons enable GPU-accelerated speech recognition using Intel OpenVINO toolkit.*
           draft: false
           prerelease: false
           
@@ -375,7 +327,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/addon-windows-openvino.node
+          asset_path: artifacts/addon-windows-openvino.node/addon-windows-openvino.node
           asset_name: addon-windows-openvino.node
           asset_content_type: application/octet-stream
           
@@ -385,7 +337,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/addon-linux-openvino.node
+          asset_path: artifacts/addon-linux-openvino.node/addon-linux-openvino.node
           asset_name: addon-linux-openvino.node
           asset_content_type: application/octet-stream
           
@@ -395,7 +347,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/addon-macos-arm-openvino.node
+          asset_path: artifacts/addon-macos-arm-openvino.node/addon-macos-arm-openvino.node
           asset_name: addon-macos-arm-openvino.node
           asset_content_type: application/octet-stream
           
@@ -405,16 +357,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: artifacts/addon-macos-x86-openvino.node
+          asset_path: artifacts/addon-macos-x86-openvino.node/addon-macos-x86-openvino.node
           asset_name: addon-macos-x86-openvino.node
           asset_content_type: application/octet-stream
           
       - name: Create build summary
         run: |
-          echo "# 🎉 OpenVINO ${{ matrix.openvino_version }} Release Created!" >> $GITHUB_STEP_SUMMARY
+          echo "# 🎉 Release Created Successfully!" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Release**: [${{ steps.version_info.outputs.tag_name }}](${{ steps.create_release.outputs.html_url }})" >> $GITHUB_STEP_SUMMARY
-          echo "**Title**: Whisper OpenVINO ${{ matrix.openvino_version }} addon - ${{ steps.version_info.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Title**: Whisper OpenVINO addon - ${{ steps.version_info.outputs.timestamp }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📦 Uploaded Addons" >> $GITHUB_STEP_SUMMARY
           echo "- Windows x64: addon-windows-openvino.node" >> $GITHUB_STEP_SUMMARY
