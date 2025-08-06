@@ -288,7 +288,7 @@ jobs:
           
           if [ -n "$OPENVINO_URL" ]; then
             # Extract full version (e.g., 2024.6.0.17404.4c0f47d2335)
-            OPENVINO_FULL_VERSION=$(echo "$OPENVINO_URL" | grep -oP '\d{4}\.\d+\.\d+\.\d+\.[a-f0-9]+' | head -1)
+            OPENVINO_FULL_VERSION=$(echo "$OPENVINO_URL" | grep -oE '\d{4}\.\d+\.\d+\.\d+\.[a-f0-9]+' | head -1)
           else
             # If URL is empty (like 2025.2), use display version
             OPENVINO_FULL_VERSION="$OPENVINO_DISPLAY_VERSION"
@@ -296,7 +296,7 @@ jobs:
           
           # Extract Electron and Node versions dynamically from workflow  
           ELECTRON_VERSION=$(grep -A 20 "Build Node.js Addon" .github/workflows/openvino-build.yml | grep "runtime-version=" | sed 's/.*runtime-version=//' | sed 's/ .*//' | head -1)
-          NODE_VERSION=$(grep -A 5 "Setup Node.js" .github/workflows/openvino-build.yml | grep "node-version:" | sed 's/.*node-version: //' | sed "s/'//g")
+          NODE_VERSION=$(grep -A 5 "Setup Node.js" .github/workflows/openvino-build.yml | grep "node-version:" | sed 's/.*node-version: //' | sed "s/'//g" | head -1)
           NODE_VERSION="${NODE_VERSION}.x"
           
           # Create timestamp
