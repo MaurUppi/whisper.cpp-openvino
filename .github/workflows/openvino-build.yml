@@ -49,7 +49,7 @@ jobs:
           node-version: '22'
           
       - name: Install cmake-js
-        run: npm install -g cmake-js
+        run: npm install -g cmake-js --silent
           
       - name: Install system dependencies (Windows)
         if: runner.os == 'Windows'
@@ -113,7 +113,15 @@ jobs:
           chmod +x scripts/validate-workflow-environment.sh
           ./scripts/validate-workflow-environment.sh || echo "⚠️ Validation completed with warnings (non-blocking)"
           
-      - name: Build Whisper.cpp with OpenVINO
+      - name: Build Whisper.cpp with OpenVINO (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          cmake -B build -DWHISPER_OPENVINO=ON -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF -DWHISPER_STATIC=ON -DCMAKE_POSITION_INDEPENDENT_CODE=ON -DOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" -DCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
+          cmake --build build -j --config Release
+        shell: cmd
+        
+      - name: Build Whisper.cpp with OpenVINO (Unix)
+        if: runner.os != 'Windows'
         run: |
           # Configure with proper OpenVINO and TBB paths
           cmake -B build \
@@ -132,7 +140,7 @@ jobs:
       - name: Install Node.js Dependencies
         run: |
           cd examples/addon.node
-          npm install
+          npm install --silent
           
       - name: Build Node.js Addon (Windows)
         if: runner.os == 'Windows'
@@ -146,6 +154,7 @@ jobs:
             --CDWHISPER_OPENVINO=ON ^
             --CDBUILD_SHARED_LIBS=OFF ^
             --CDWHISPER_STATIC=ON ^
+            --CDCMAKE_POSITION_INDEPENDENT_CODE=ON ^
             --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" ^
             --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake"
         shell: cmd
@@ -163,6 +172,7 @@ jobs:
             --CDWHISPER_OPENVINO=ON \
             --CDBUILD_SHARED_LIBS=OFF \
             --CDWHISPER_STATIC=ON \
+            --CDCMAKE_POSITION_INDEPENDENT_CODE=ON \
             --CDOpenVINO_DIR="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
             --CDCMAKE_PREFIX_PATH="${{ env.OPENVINO_INSTALL_DIR }}/runtime/cmake" \
             --CDCMAKE_MODULE_PATH="${{ github.workspace }}/cmake"
